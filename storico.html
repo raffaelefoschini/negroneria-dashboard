@@ -166,6 +166,19 @@
       <div class="chart-wrap"><canvas id="chart-trend"></canvas></div>
     </div>
 
+    <!-- ===== Entrate/Uscite YTD, cassa vs competenza (solo vista Year-to-date) ===== -->
+    <div class="card" id="card-cassa-competenza" style="display:none;">
+      <h2>Entrate / uscite — Year-to-date</h2>
+      <div class="segmented" id="segmented-vista-ytd" style="margin-bottom:12px;">
+        <button data-v="cassa" onclick="cambiaVistaYtd('cassa')" class="attivo">Cassa</button>
+        <button data-v="competenza" onclick="cambiaVistaYtd('competenza')">Competenza</button>
+      </div>
+      <div class="stat-row"><span class="nome">Entrate complessive</span><span class="val" id="ytd-entrate">—</span></div>
+      <div class="stat-row"><span class="nome">Uscite</span><span class="val" id="ytd-uscite">—</span></div>
+      <div class="stat-row"><span class="nome"><b>Margine</b></span><span class="val" id="ytd-margine">—</span></div>
+      <p class="nota" id="ytd-nota"></p>
+    </div>
+
     <!-- ===== Panoramica + Margini ===== -->
     <div class="card">
       <h2 id="periodo-titolo">Panoramica</h2>
@@ -285,16 +298,17 @@
 // Password semplice lato client (vedi avviso nel gate): protezione
 // proporzionata a un tool interno per 3 soci, non una vera autenticazione -
 // chi guarda il sorgente della pagina puo' comunque risalire all'URL CSV.
-const PASSWORD = "Lanegroneriadati";
+const PASSWORD = "CAMBIAMI";
 
 // Incolla qui l'URL del tab "Dashboard_Storico" pubblicato come CSV
 // (Google Sheets -> File -> Condividi -> Pubblica sul web -> seleziona
 // il tab "Dashboard_Storico" -> formato CSV -> Pubblica -> copia il link).
-const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRy6voStdcQ5Wu6RP_KJtfN8aRaw-gLo1XqBPVr41vpJkZh4R1mWU2NsI7BKoNLVIeaEYze7yiGgJ6M/pub?gid=443630783&single=true&output=csv";
+const CSV_URL = "INCOLLA_QUI_URL_CSV_PUBBLICATO";
 
 let DASHBOARD = null;
 let GRANULARITA = "settimane";
 let CHART = null;
+let VISTA_YTD = "cassa";
 
 function verificaPassword() {
   const input = document.getElementById("gate-pwd");
@@ -469,6 +483,43 @@ function renderPeriodo(p) {
   }
 }
 
+// Tabella Entrate/Uscite/Margine con toggle Cassa <-> Competenza, mostrata
+// solo nella vista Year-to-date. Nessun dato nuovo dal backend: "Cassa"
+// riusa gli stessi campi gia' calcolati per il "Margine di cassa" sopra
+// (incassi_totali/spese_totali_cassa/margine_cassa), "Competenza" riusa
+// quelli del "Margine di competenza" (ricavi_competenza_mese/margine_
+// competenza) sommando lato client le singole voci di uscita gia' presenti
+// nel JSON (cogs teorico, stipendi, costi fissi di competenza, IVA stimata) -
+// stessa formula usata per calcolare margine_competenza in build_dashboard_
+// storico.py, solo scomposta per mostrare il totale delle uscite.
+function cambiaVistaYtd(v) {
+  VISTA_YTD = v;
+  document.querySelectorAll("#segmented-vista-ytd button").forEach(b => b.classList.toggle("attivo", b.dataset.v === v));
+  if (DASHBOARD) renderCassaCompetenza(DASHBOARD.ytd);
+}
+
+function renderCassaCompetenza(p) {
+  let entrate, uscite, margine, nota;
+  if (VISTA_YTD === "cassa") {
+    entrate = p.incassi_totali;
+    uscite = p.spese_totali_cassa;
+    margine = p.margine_cassa;
+    nota = "Liquidita': quanto e' entrato/uscito dal conto (spese bancarie + stipendi soci/dipendenti), senza distinguere quando la spesa \"matura\".";
+  } else {
+    entrate = p.ricavi_competenza_mese;
+    uscite = (p.cogs_teorico || 0) + (p.stipendi_dipendenti_mese || 0) + (p.stipendi_soci_mese || 0) +
+             (p.costi_fissi_competenza_mese || 0) + (p.iva_da_versare_stimata_mese || 0);
+    margine = p.margine_competenza;
+    nota = "Redditivita' reale: ricavi netti IVA + sospese, meno costo teorico del venduto, stipendi, costi fissi di competenza e IVA stimata da versare.";
+  }
+  document.getElementById("ytd-entrate").textContent = formattaEuro(entrate);
+  document.getElementById("ytd-uscite").textContent = formattaEuro(uscite);
+  const elMargine = document.getElementById("ytd-margine");
+  elMargine.textContent = formattaEuro(margine);
+  elMargine.style.color = margine >= 0 ? "var(--verde)" : "var(--rosso)";
+  document.getElementById("ytd-nota").textContent = nota;
+}
+
 function etichettaBreve(p, granularita) {
   if (granularita === "settimane") return p.data_inizio.slice(0, 5);
   if (granularita === "mesi") return p.label.slice(0, 3) + " " + p.label.slice(-2);
@@ -554,9 +605,13 @@ function cambiaGranularita(g) {
   GRANULARITA = g;
   document.querySelectorAll("#segmented button").forEach(b => b.classList.toggle("attivo", b.dataset.g === g));
   popolaSelettorePeriodi();
+  const cardCC = document.getElementById("card-cassa-competenza");
   if (g === "ytd") {
+    cardCC.style.display = "block";
     renderPeriodo(DASHBOARD.ytd);
+    renderCassaCompetenza(DASHBOARD.ytd);
   } else {
+    cardCC.style.display = "none";
     disegnaTrend(DASHBOARD[g], g);
     renderPeriodo(DASHBOARD[g][DASHBOARD[g].length - 1]);
   }
