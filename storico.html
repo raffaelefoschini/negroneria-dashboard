@@ -269,6 +269,10 @@
       <h3>Per fornitore</h3>
       <div class="barra-list" id="sp-fornitore-list"></div>
 
+      <h3>Stipendi (tab Costi Fissi, quota del periodo)</h3>
+      <div class="stat-row"><span class="nome">Stipendi dipendenti</span><span class="val" id="sp-stipendi-dip">—</span></div>
+      <div class="stat-row"><span class="nome">Stipendi soci</span><span class="val" id="sp-stipendi-soci">—</span></div>
+
       <h3>Costi Fissi — dettaglio (tab, quota del periodo)</h3>
       <div class="barra-list" id="sp-costifissi-dettaglio-list"></div>
     </div>
@@ -315,10 +319,11 @@
 // chi guarda il sorgente della pagina puo' comunque risalire all'URL CSV.
 const PASSWORD = "Lanegroneriadati";
 
-// Incolla qui l'URL del tab "Dashboard_Storico" pubblicato come CSV
-// (Google Sheets -> File -> Condividi -> Pubblica sul web -> seleziona
-// il tab "Dashboard_Storico" -> formato CSV -> Pubblica -> copia il link).
-const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRy6voStdcQ5Wu6RP_KJtfN8aRaw-gLo1XqBPVr41vpJkZh4R1mWU2NsI7BKoNLVIeaEYze7yiGgJ6M/pub?gid=443630783&single=true&output=csv";
+// URL del tab "Dashboard_Storico" pubblicato come CSV (Google Sheets ->
+// File -> Condividi -> Pubblica sul web -> seleziona il tab "Dashboard_
+// Storico" -> formato CSV -> Pubblica -> copia il link). Se in futuro
+// ripubblichi da un foglio diverso, aggiorna questo valore.
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQcAnPXeICDTEkXb2vVFgJKVH_vF8FO39hrwCCOOOWrHr3BdZo7z0H5WJ4-69pPf6xFnSyuIWNbJOfK/pub?gid=564054072&single=true&output=csv";
 
 let DASHBOARD = null;
 let GRANULARITA = "settimane";
@@ -478,6 +483,8 @@ function renderPeriodo(p) {
   document.getElementById("sp-totale-bancarie").textContent = formattaEuro(p.totale_spese_bancarie);
   barraList("sp-categoria-list", p.spese_per_categoria);
   barraList("sp-fornitore-list", popolaSpesaPerFornitoreTipo(p.spesa_per_fornitore_tipo));
+  document.getElementById("sp-stipendi-dip").textContent = formattaEuro(p.stipendi_dipendenti_mese);
+  document.getElementById("sp-stipendi-soci").textContent = formattaEuro(p.stipendi_soci_mese);
   barraList("sp-costifissi-dettaglio-list", p.costi_fissi_da_tab_dettaglio);
 
   barraList("v-top-bar", p.top_prodotti_bar);
