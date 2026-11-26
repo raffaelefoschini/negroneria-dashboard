@@ -102,17 +102,36 @@
 
   .empty { color: var(--text-dim); font-size: 13px; padding: 6px 0; }
 
-  table.tabella-mesi { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-  table.tabella-mesi th, table.tabella-mesi td { padding: 7px 4px; text-align: right; white-space: nowrap; }
-  table.tabella-mesi th:first-child, table.tabella-mesi td:first-child { text-align: left; }
-  table.tabella-mesi thead th {
-    color: var(--text-dim); font-weight: 600; font-size: 10.5px;
-    text-transform: uppercase; letter-spacing: 0.4px; border-bottom: 1px solid var(--card-border);
+  /* Schede principali (Storico / Magazzino) */
+  .tabbar {
+    display: flex; gap: 6px; margin-bottom: 14px; border-bottom: 1px solid var(--card-border);
   }
-  table.tabella-mesi tbody tr:last-child { font-weight: 700; }
-  table.tabella-mesi tbody tr + tr { border-top: 1px solid var(--card-border); }
-  table.tabella-mesi td.margine-pos { color: var(--verde); }
-  table.tabella-mesi td.margine-neg { color: var(--rosso); }
+  .tabbar button {
+    background: transparent; border: none; color: var(--text-dim); font-size: 14px; font-weight: 700;
+    padding: 10px 14px; border-bottom: 3px solid transparent; margin-bottom: -1px;
+  }
+  .tabbar button.attivo { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* Scheda Magazzino */
+  .tabella-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.mag { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  table.mag th {
+    text-align: right; color: var(--text-dim); font-weight: 600; font-size: 11px;
+    padding: 6px 6px; border-bottom: 1px solid var(--card-border); white-space: nowrap;
+  }
+  table.mag td { text-align: right; padding: 7px 6px; border-bottom: 1px solid var(--card-border); white-space: nowrap; }
+  table.mag th:first-child, table.mag td:first-child { text-align: left; white-space: normal; min-width: 110px; }
+  table.mag td.teorico { font-weight: 700; }
+  .chip { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 8px; }
+  .chip.rosso { background: rgba(224,90,78,.18); color: var(--rosso); }
+  .chip.giallo { background: rgba(217,164,65,.18); color: var(--giallo); }
+  .chip.verde { background: rgba(92,179,122,.15); color: var(--verde); }
+  .premade-box { padding: 10px 0; }
+  .premade-box + .premade-box { border-top: 1px solid var(--card-border); }
+  .premade-box .titolo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 14px; font-weight: 700; }
+  .stat-row .val.neg { color: var(--rosso); }
+  .stat-row .val.pos { color: var(--verde); }
+  .stat-row.totale .nome, .stat-row.totale .val { font-weight: 800; font-size: 15px; }
 
   #stato { text-align: center; color: var(--text-dim); font-size: 13px; padding: 40px 20px; }
   #contenuto { display: none; }
@@ -165,6 +184,13 @@
 
   <div id="contenuto">
 
+    <div class="tabbar" id="tabbar">
+      <button data-v="storico" class="attivo" onclick="mostraVista('storico')">Storico</button>
+      <button data-v="magazzino" onclick="mostraVista('magazzino')">Magazzino</button>
+    </div>
+
+    <div id="vista-storico">
+
     <div class="segmented" id="segmented">
       <button data-g="settimane" onclick="cambiaGranularita('settimane')">Settimana</button>
       <button data-g="mesi" onclick="cambiaGranularita('mesi')">Mese</button>
@@ -176,22 +202,6 @@
     <div class="card" id="card-trend">
       <h2>Andamento — Fatturato e margine di competenza</h2>
       <div class="chart-wrap"><canvas id="chart-trend"></canvas></div>
-    </div>
-
-    <!-- ===== Entrate/Uscite mese per mese, cassa vs competenza (solo vista Year-to-date) ===== -->
-    <div class="card" id="card-cassa-competenza" style="display:none;">
-      <h2>Entrate / uscite per mese</h2>
-      <div class="segmented" id="segmented-vista-ytd" style="margin-bottom:12px;">
-        <button data-v="cassa" onclick="cambiaVistaYtd('cassa')" class="attivo">Cassa</button>
-        <button data-v="competenza" onclick="cambiaVistaYtd('competenza')">Competenza</button>
-      </div>
-      <div style="overflow-x:auto;">
-        <table class="tabella-mesi">
-          <thead><tr><th>Mese</th><th>Entrate</th><th>Uscite</th><th>Margine</th></tr></thead>
-          <tbody id="tabella-mesi-body"></tbody>
-        </table>
-      </div>
-      <p class="nota" id="ytd-nota"></p>
     </div>
 
     <!-- ===== Panoramica + Margini ===== -->
@@ -269,10 +279,6 @@
       <h3>Per fornitore</h3>
       <div class="barra-list" id="sp-fornitore-list"></div>
 
-      <h3>Stipendi (tab Costi Fissi, quota del periodo)</h3>
-      <div class="stat-row"><span class="nome">Stipendi dipendenti</span><span class="val" id="sp-stipendi-dip">—</span></div>
-      <div class="stat-row"><span class="nome">Stipendi soci</span><span class="val" id="sp-stipendi-soci">—</span></div>
-
       <h3>Costi Fissi — dettaglio (tab, quota del periodo)</h3>
       <div class="barra-list" id="sp-costifissi-dettaglio-list"></div>
     </div>
@@ -308,6 +314,29 @@
       <div class="barra-list" id="m-consumi-list"></div>
     </div>
 
+    </div><!-- /vista-storico -->
+
+    <!-- ===== Scheda MAGAZZINO ===== -->
+    <div id="vista-magazzino" style="display:none">
+      <div id="mag-stato" class="empty">Carico il magazzino...</div>
+      <div id="mag-contenuto" style="display:none">
+
+        <div class="card">
+          <h2>Premade (tank) — litri</h2>
+          <p class="nota">Quantita' registrata all'ultimo conteggio, piu' i rabbocchi, meno quanto venduto dai prodotti collegati al premade. Si aggiorna a ogni sincronizzazione delle vendite.</p>
+          <div id="mag-premade-list"></div>
+        </div>
+
+        <div class="card">
+          <h2>Bottiglie / ingredienti</h2>
+          <p class="nota">Teorico = inventario registrato + ordini arrivati &minus; bottiglie usate per i rabbocchi dei premade &minus; consumo dei drink venduti che non passano da un premade (es. mezcal, sbagliato). Il consumo qui sotto comprende tutte queste voci.</p>
+          <div class="tabella-scroll"><table class="mag" id="mag-bottiglie-tab"></table></div>
+        </div>
+
+        <footer id="mag-agg">—</footer>
+      </div>
+    </div>
+
   </div>
 
   <footer>Dati aggiornati ad ogni giro di build_dashboard_storico.py. <a href="index.html">Vai a oggi/ieri →</a></footer>
@@ -317,18 +346,111 @@
 // Password semplice lato client (vedi avviso nel gate): protezione
 // proporzionata a un tool interno per 3 soci, non una vera autenticazione -
 // chi guarda il sorgente della pagina puo' comunque risalire all'URL CSV.
-const PASSWORD = "Lanegroneriadati";
+const PASSWORD = "Negroneriadati26";
 
-// URL del tab "Dashboard_Storico" pubblicato come CSV (Google Sheets ->
-// File -> Condividi -> Pubblica sul web -> seleziona il tab "Dashboard_
-// Storico" -> formato CSV -> Pubblica -> copia il link). Se in futuro
-// ripubblichi da un foglio diverso, aggiorna questo valore.
+// Incolla qui l'URL del tab "Dashboard_Storico" pubblicato come CSV
+// (Google Sheets -> File -> Condividi -> Pubblica sul web -> seleziona
+// il tab "Dashboard_Storico" -> formato CSV -> Pubblica -> copia il link).
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRy6voStdcQ5Wu6RP_KJtfN8aRaw-gLo1XqBPVr41vpJkZh4R1mWU2NsI7BKoNLVIeaEYze7yiGgJ6M/pub?gid=443630783&single=true&output=csv";
+
+// URL CSV del tab "Dashboard_Magazzino" (stesso foglio dashboard del tab
+// Dashboard_Storico, pubblicato a parte: File -> Condividi -> Pubblica sul web
+// -> scegli il tab "Dashboard_Magazzino" -> formato CSV -> Pubblica -> copia il
+// link). Finche' resta vuoto la scheda Magazzino mostra solo un promemoria.
+const MAGAZZINO_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRy6voStdcQ5Wu6RP_KJtfN8aRaw-gLo1XqBPVr41vpJkZh4R1mWU2NsI7BKoNLVIeaEYze7yiGgJ6M/pub?gid=1194283185&single=true&output=csv";
 
 let DASHBOARD = null;
 let GRANULARITA = "settimane";
 let CHART = null;
-let VISTA_YTD = "cassa";
+let MAGAZZINO = null;
+
+function esc(s) {
+  return String(s === null || s === undefined ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+// numero con virgola italiana, max 2 decimali, senza zeri inutili
+function fmtN(v) {
+  if (v === null || v === undefined) return "—";
+  return String(Math.round(Number(v) * 100) / 100).replace(".", ",");
+}
+function classeLivello(l) {
+  if (l === "SOTTO SOGLIA") return "rosso";
+  if (l === "VICINO ALLA SOGLIA") return "giallo";
+  return "verde";
+}
+function chipLivello(l) {
+  if (!l) return "";
+  return '<span class="chip ' + classeLivello(l) + '">' + esc(l.toLowerCase()) + "</span>";
+}
+
+function mostraVista(v) {
+  document.querySelectorAll("#tabbar button").forEach(b => b.classList.toggle("attivo", b.dataset.v === v));
+  document.getElementById("vista-storico").style.display = v === "storico" ? "block" : "none";
+  document.getElementById("vista-magazzino").style.display = v === "magazzino" ? "block" : "none";
+}
+
+function renderMagazzino(d) {
+  MAGAZZINO = d;
+  // ---- premade ----
+  const cont = document.getElementById("mag-premade-list");
+  cont.innerHTML = "";
+  const premade = (d.premade || []).slice().sort((a, b) => a.nome.localeCompare(b.nome));
+  if (premade.length === 0) cont.innerHTML = '<div class="empty">Nessun premade.</div>';
+  premade.forEach(p => {
+    const sconf = p.sconfinata_su_bottiglie;
+    const box = document.createElement("div");
+    box.className = "premade-box";
+    box.innerHTML =
+      '<div class="titolo"><span>' + esc(p.nome) + "</span>" + chipLivello(p.livello) + "</div>" +
+      '<div class="stat-row"><span class="nome">Registrato' + (p.data_conteggio ? " (" + esc(p.data_conteggio) + ")" : "") +
+        '</span><span class="val">' + fmtN(p.registrato) + " L</span></div>" +
+      '<div class="stat-row"><span class="nome">+ Rabbocchi</span><span class="val pos">' + fmtN(p.rabbocchi) + " L</span></div>" +
+      '<div class="stat-row"><span class="nome">&minus; Venduto</span><span class="val neg">' + fmtN(p.coperta_da_premade) + " L</span></div>" +
+      '<div class="stat-row totale"><span class="nome">Rimasto (teorico)</span><span class="val">' + fmtN(p.teorico) + " L</span></div>" +
+      (sconf ? '<div class="empty">Premade esaurito: ' + fmtN(sconf) + " L di vendite scalati sulle bottiglie.</div>" : "") +
+      (p.giorni_copertura !== null && p.giorni_copertura !== undefined
+        ? '<div class="empty">Copertura stimata: ' + fmtN(p.giorni_copertura) + " giorni</div>" : "");
+    cont.appendChild(box);
+  });
+
+  // ---- bottiglie ----
+  const ordine = {"SOTTO SOGLIA": 0, "VICINO ALLA SOGLIA": 1};
+  const bott = (d.bottiglie || []).slice().sort((a, b) => {
+    const la = ordine[a.livello] !== undefined ? ordine[a.livello] : 2;
+    const lb = ordine[b.livello] !== undefined ? ordine[b.livello] : 2;
+    return la - lb || a.nome.localeCompare(b.nome);
+  });
+  const tab = document.getElementById("mag-bottiglie-tab");
+  let html = "<thead><tr><th>Ingrediente</th><th>Registrato</th><th>+ Ordini</th><th>&minus; Consumo</th><th>Teorico</th><th></th></tr></thead><tbody>";
+  bott.forEach(b => {
+    html += "<tr><td>" + esc(b.nome) +
+      (b.data_inventario ? '<div class="empty" style="padding:0;font-size:10.5px">inv. ' + esc(b.data_inventario) + "</div>" : "") +
+      "</td><td>" + fmtN(b.registrato) + "</td><td>" + fmtN(b.ordini) + "</td><td>" + fmtN(b.consumo) +
+      '</td><td class="teorico">' + fmtN(b.teorico) + "</td><td>" + chipLivello(b.livello) + "</td></tr>";
+  });
+  html += "</tbody>";
+  tab.innerHTML = bott.length ? html : "<tbody><tr><td>Nessun ingrediente.</td></tr></tbody>";
+
+  document.getElementById("mag-agg").textContent = "Magazzino aggiornato " + d.ultimo_aggiornamento;
+  document.getElementById("mag-stato").style.display = "none";
+  document.getElementById("mag-contenuto").style.display = "block";
+}
+
+async function caricaMagazzino() {
+  const stato = document.getElementById("mag-stato");
+  if (!MAGAZZINO_CSV_URL) {
+    stato.textContent = "Scheda non ancora collegata: pubblica il tab Dashboard_Magazzino come CSV e incolla il link in MAGAZZINO_CSV_URL (vedi istruzioni).";
+    return;
+  }
+  try {
+    const res = await fetch(MAGAZZINO_CSV_URL + (MAGAZZINO_CSV_URL.includes("?") ? "&" : "?") + "_=" + Date.now(), { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    renderMagazzino(estraiJsonDaCsv(await res.text()));
+  } catch (e) {
+    stato.style.display = "block";
+    stato.textContent = "Errore nel caricamento del magazzino: " + e.message;
+  }
+}
 
 function verificaPassword() {
   const input = document.getElementById("gate-pwd");
@@ -483,8 +605,6 @@ function renderPeriodo(p) {
   document.getElementById("sp-totale-bancarie").textContent = formattaEuro(p.totale_spese_bancarie);
   barraList("sp-categoria-list", p.spese_per_categoria);
   barraList("sp-fornitore-list", popolaSpesaPerFornitoreTipo(p.spesa_per_fornitore_tipo));
-  document.getElementById("sp-stipendi-dip").textContent = formattaEuro(p.stipendi_dipendenti_mese);
-  document.getElementById("sp-stipendi-soci").textContent = formattaEuro(p.stipendi_soci_mese);
   barraList("sp-costifissi-dettaglio-list", p.costi_fissi_da_tab_dettaglio);
 
   barraList("v-top-bar", p.top_prodotti_bar);
@@ -503,48 +623,6 @@ function renderPeriodo(p) {
     barraList("m-consumi-list", snap.consumi_bottiglie.map(c => [c.nome, c.consumo_teorico_unita]),
       { formatta: v => Number(v).toFixed(1).replace(".", ",") + " unita'" });
   }
-}
-
-// Tabella Entrate/Uscite/Margine con una riga per mese (Gennaio, Febbraio...
-// gli ultimi N_MESI restituiti da build_dashboard_storico.py) e un toggle
-// Cassa <-> Competenza, mostrata solo nella vista Year-to-date. Nessun dato
-// nuovo dal backend: "Cassa" riusa gli stessi campi gia' calcolati per il
-// "Margine di cassa" di ciascun mese (incassi_totali/spese_totali_cassa/
-// margine_cassa), "Competenza" riusa quelli del "Margine di competenza"
-// (ricavi_competenza_mese/margine_competenza) sommando lato client le
-// singole voci di uscita gia' presenti nel JSON (cogs teorico, stipendi,
-// costi fissi di competenza, IVA stimata) - stessa formula usata per
-// calcolare margine_competenza in build_dashboard_storico.py, solo
-// scomposta per mostrare il totale delle uscite.
-function calcolaCassaCompetenza(p) {
-  if (VISTA_YTD === "cassa") {
-    return { entrate: p.incassi_totali, uscite: p.spese_totali_cassa, margine: p.margine_cassa };
-  }
-  const uscite = (p.cogs_teorico || 0) + (p.stipendi_dipendenti_mese || 0) + (p.stipendi_soci_mese || 0) +
-                 (p.costi_fissi_competenza_mese || 0) + (p.iva_da_versare_stimata_mese || 0);
-  return { entrate: p.ricavi_competenza_mese, uscite: uscite, margine: p.margine_competenza };
-}
-
-function cambiaVistaYtd(v) {
-  VISTA_YTD = v;
-  document.querySelectorAll("#segmented-vista-ytd button").forEach(b => b.classList.toggle("attivo", b.dataset.v === v));
-  if (DASHBOARD) renderCassaCompetenza(DASHBOARD.mesi);
-}
-
-function renderCassaCompetenza(listaMesi) {
-  document.getElementById("ytd-nota").textContent = VISTA_YTD === "cassa"
-    ? "Liquidita' mese per mese: quanto e' entrato/uscito dal conto (spese bancarie + stipendi soci/dipendenti), senza distinguere quando la spesa \"matura\"."
-    : "Redditivita' reale mese per mese: ricavi netti IVA + sospese, meno costo teorico del venduto, stipendi, costi fissi di competenza e IVA stimata da versare.";
-  const tbody = document.getElementById("tabella-mesi-body");
-  tbody.innerHTML = "";
-  listaMesi.forEach(p => {
-    const { entrate, uscite, margine } = calcolaCassaCompetenza(p);
-    const tr = document.createElement("tr");
-    const classeMargine = margine >= 0 ? "margine-pos" : "margine-neg";
-    tr.innerHTML = `<td>${p.label}</td><td>${formattaEuro(entrate)}</td><td>${formattaEuro(uscite)}</td>` +
-                    `<td class="${classeMargine}">${formattaEuro(margine)}</td>`;
-    tbody.appendChild(tr);
-  });
 }
 
 function etichettaBreve(p, granularita) {
@@ -632,13 +710,9 @@ function cambiaGranularita(g) {
   GRANULARITA = g;
   document.querySelectorAll("#segmented button").forEach(b => b.classList.toggle("attivo", b.dataset.g === g));
   popolaSelettorePeriodi();
-  const cardCC = document.getElementById("card-cassa-competenza");
   if (g === "ytd") {
-    cardCC.style.display = "block";
     renderPeriodo(DASHBOARD.ytd);
-    renderCassaCompetenza(DASHBOARD.mesi);
   } else {
-    cardCC.style.display = "none";
     disegnaTrend(DASHBOARD[g], g);
     renderPeriodo(DASHBOARD[g][DASHBOARD[g].length - 1]);
   }
@@ -667,6 +741,7 @@ async function carica(manuale) {
     const testo = await res.text();
     const dati = estraiJsonDaCsv(testo);
     render(dati);
+    caricaMagazzino(); // scheda separata: un suo errore non deve rompere lo storico
   } catch (e) {
     document.getElementById("stato").textContent = "Errore nel caricamento dei dati: " + e.message;
     document.getElementById("stato").style.display = "block";
